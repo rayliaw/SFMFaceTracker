@@ -7,11 +7,11 @@ from win32gui import MessageBox
 from win32con import MB_ICONINFORMATION, MB_ICONEXCLAMATION, MB_ICONERROR
 
 try:
+    import tkFileDialog
     from tkinter import *
     from tkinter import ttk
 except ImportError:
-    print "importError"
-    import FileDialog
+    import tkFileDialog
     from Tkinter import *
     from Tkinter import Tk as ttk
    
@@ -87,12 +87,9 @@ def replaceControlAnimation(controlName, timePoints, valuePoints):
 #
 ##########################
 
-
-
 # Load up a file dialog and
 def loadAndProcessFile():
-  fd = FileDialog.LoadFileDialog(root)
-  inputFilePath = fd.go()
+  inputFilePath = tkFileDialog.askopenfilename()
   if inputFilePath != None:
     inputFile = open(inputFilePath)
     print "inputFile is: "
@@ -121,7 +118,7 @@ def processJSONData(inputData):
       auValues.append(element["value"])
     replaceControlAnimation(FACSmap[AU], auTimes, auValues)
     
-sys.argv = "Some Text" 
+sys.argv = ' '
 # Create the window and give it a title
 root = Tk()
 root.title("Import Kinect Facial Animation Data")
