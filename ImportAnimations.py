@@ -16,26 +16,6 @@ except ImportError:
 import os
 import json
 
-#Let's let you select a file to load from
-root = Tk()
-root.withdraw()
-fd = FileDialog.LoadFileDialog(root)
-inputFilePath = fd.go()
-inputFile = open(inputFilePath)
-inputData = json.load(inputFile)
-#Close that mofo!
-inputFile.close()
-
-print inputData['A1']
-
-happyBigTimes = []
-happyBigValues = []
-
-for element in inputData['A1']:
-  print element
-  happyBigTimes.append(element["time"])
-  happyBigValues.append(element["value"])
-
 def replaceControlAnimation(controlName, timePoints, valuePoints):
   # First, let's get our channel
   animSet = sfm.GetCurrentAnimationSet()
@@ -100,11 +80,78 @@ def replaceControlAnimation(controlName, timePoints, valuePoints):
     control.channel.log.layers[0].values.insert(insertionPoint + i,valuePoints[i])
 
 
-newTimes = [5000, 10000, 20000, 30000]
-newValues = [0.5, 1, 0, 0.5]
+#####################
+#
+# Now let's handle some GUI stuff
+#
+##########################
 
-#We got happyBigTimes and Values from way up where we imported our JSON object
-replaceControlAnimation("happybig", happyBigTimes, happyBigValues)
-#Select some time block
-sfm.TimeSelectFrames( 0, 10, 20, 30, interpIn="EaseIn", interpOut="EaseOut" )
 
+
+# Load up a file dialog and
+def loadAndProcessFile():
+  fd = FileDialog.LoadFileDialog(root)
+  inputFilePath = fd.go()
+  inputFile = open(inputFilePath)
+  inputData = json.load(inputFile)
+  #Close that mofo!
+  inputFile.close()
+  #And process the data
+  processJSONData(inputData)
+
+
+FACSmap = {"A1": "happybig", "A2": "painbig"}
+
+def processJSONData(inputData):
+  for AU in inputData:
+    auTimes = []
+    auValues = []
+    for element in inputData[AU]:
+      auTimes.append(element["time"])
+      auValues.append(element["value"])
+    replaceControlAnimation(FACSmap[AU], auTimes, auValues)
+    
+sys.argv = "Some Text" 
+# Create the window and give it a title
+root = Tk()
+root.title("Import Kinect Facial Animation Data")
+
+# Set up a frame inside the root window
+mainframe = Frame(root, padx=3, pady =12)
+# That resizes nicely
+mainframe.grid(column=0, row=0, sticky=(N, W, E, S))
+mainframe.columnconfigure(0, weight=1)
+mainframe.rowconfigure(0, weight=1)
+
+# Create some widgets 
+feet = StringVar()
+meters = StringVar()
+
+absoluteTime = IntVar()
+Checkbutton(mainframe, text="Absolute Time?", variable = absoluteTime).grid(column = 1, row = 1)
+
+# A widget for the text entry box
+feet_entry = Entry(mainframe, width=7, textvariable=feet)
+# and where it goes
+feet_entry.grid(column=2, row=1, sticky=(W, E))
+
+#A widget for a slider
+
+# Label and button widgets and where they go
+Label(mainframe, textvariable=meters).grid(column=2, row=2, sticky=(W, E))
+Button(mainframe, text="Load File...", command=loadAndProcessFile).grid(column=3, row=3, sticky=W)
+
+
+# Label and output widgets and where they go
+Label(mainframe, text="feet").grid(column=3, row=1, sticky=W)
+Label(mainframe, text="is equivalent to").grid(column=1, row=2, sticky=E)
+Label(mainframe, text="meters").grid(column=3, row=2, sticky=W)
+
+# Add some padding around all the widgets so they don't get in each others' faces
+for child in mainframe.winfo_children(): child.grid_configure(padx=5, pady=5)
+
+print "Tkinter version"
+print TkVersion
+
+# Aaaand run Tkinter's main loop, so everything updates
+root.mainloop()
