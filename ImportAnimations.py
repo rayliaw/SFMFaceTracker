@@ -1,5 +1,7 @@
 import vs
 import sfmUtils
+import os
+import json
 
 from win32gui import MessageBox
 from win32con import MB_ICONINFORMATION, MB_ICONEXCLAMATION, MB_ICONERROR
@@ -13,13 +15,6 @@ except ImportError:
     from Tkinter import *
     from Tkinter import Tk as ttk
    
-import os
-import json
-
-print session
-
-def getTimeAtPlayhead():
-  print "test"
 
 
 def replaceControlAnimation(controlName, timePoints, valuePoints):
@@ -113,10 +108,16 @@ FACSmap = {"A1": "happybig", "A2": "painbig"}
 
 def processJSONData(inputData):
   for AU in inputData:
+    # If the absoluteTime flag is clear, we'll find the playhead and
+    #  offset the times by that
+    offset = 0
+    if absoluteTime.get() == 0 and int(fps.get()) > 0 :
+      currentFrame = sfm.GetCurrentFrame()
+      offset = (currentFrame / int(fps.get())) * 10000
     auTimes = []
     auValues = []
     for element in inputData[AU]:
-      auTimes.append(element["time"])
+      auTimes.append(element["time"] + offset)
       auValues.append(element["value"])
     replaceControlAnimation(FACSmap[AU], auTimes, auValues)
     
@@ -133,28 +134,25 @@ mainframe.columnconfigure(0, weight=1)
 mainframe.rowconfigure(0, weight=1)
 
 # Create some widgets 
-feet = StringVar()
-meters = StringVar()
+# Get a frames-per-second value, and set it to 24 as a default
+fps = StringVar()
+fps.set(24)
 
 absoluteTime = IntVar()
 Checkbutton(mainframe, text="Absolute Time?", variable = absoluteTime).grid(column = 1, row = 1)
 
 # A widget for the text entry box
-feet_entry = Entry(mainframe, width=7, textvariable=feet)
+fpsEntry = Entry(mainframe, width=7, textvariable=fps)
 # and where it goes
-feet_entry.grid(column=2, row=1, sticky=(W, E))
+fpsEntry.grid(column=2, row=1, sticky=(W, E))
 
-#A widget for a slider
+# Label and output widgets and where they go
+Label(mainframe, text="frames per second").grid(column=3, row=1, sticky=W)
 
 # Label and button widgets and where they go
-Label(mainframe, textvariable=meters).grid(column=2, row=2, sticky=(W, E))
 Button(mainframe, text="Load File...", command=loadAndProcessFile).grid(column=3, row=3, sticky=W)
 
 
-# Label and output widgets and where they go
-Label(mainframe, text="feet").grid(column=3, row=1, sticky=W)
-Label(mainframe, text="is equivalent to").grid(column=1, row=2, sticky=E)
-Label(mainframe, text="meters").grid(column=3, row=2, sticky=W)
 
 # Add some padding around all the widgets so they don't get in each others' faces
 for child in mainframe.winfo_children(): child.grid_configure(padx=5, pady=5)
