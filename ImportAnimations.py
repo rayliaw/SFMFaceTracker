@@ -6,6 +6,10 @@ import json
 from win32gui import MessageBox
 from win32con import MB_ICONINFORMATION, MB_ICONEXCLAMATION, MB_ICONERROR
 
+#TODO: Sanity checking on inputs
+#      Add in border frames to input
+#         - if there's no frame within a certain distance of each end, then add in one
+
 try:
     import tkFileDialog
     from tkinter import *
@@ -67,9 +71,20 @@ def replaceControlAnimation(controlName, timePoints, valuePoints):
   # If the insertion point was never changed, tell us to insert at the end
   if insertionPoint == -1:
     len(control.channel.log.layers[0].times)
+    # And add in a keyframe to the start of our new data
+    #  to provide a nice crisp transition for the data
+    #  so long as there isn't already a data point too close
+    currentTimesLen = len(control.channel.log.layers[0].times)
+    if (dmeTimePoints[0] - control.channel.log.layers[0].times[currentTimesLen - 1]) > vs.DmeTime_t(2):
+      print("adding in buffer key")
+      dmeTimePoints.insert(0, dmeTimePoints[0] - vs.DmeTime_t(1))
+      currentValuesLen = len(control.channel.log.layers[0].values)
+      valuePoints.insert(0, control.channel.log.layers[0].values[currentValuesLen -1])
+    else:
+      print "Already a point was close - didn't add in buffer frame"
   #And make sure we reset our zero element to zero.
-  control.channel.log.layers[0].times[0] = vs.DmeTime_t(0)
-  control.channel.log.layers[0].values[0] = 0
+  #control.channel.log.layers[0].times[0] = vs.DmeTime_t(0)
+  #control.channel.log.layers[0].values[0] = 0
   
   # Note! We're just appending data, so we'll always keep
   #  a starting point at time = 0, value = 0
