@@ -16,6 +16,12 @@ except ImportError:
 import os
 import json
 
+print session
+
+def getTimeAtPlayhead():
+  print "test"
+
+
 def replaceControlAnimation(controlName, timePoints, valuePoints):
   # First, let's get our channel
   animSet = sfm.GetCurrentAnimationSet()
@@ -92,12 +98,15 @@ def replaceControlAnimation(controlName, timePoints, valuePoints):
 def loadAndProcessFile():
   fd = FileDialog.LoadFileDialog(root)
   inputFilePath = fd.go()
-  inputFile = open(inputFilePath)
-  inputData = json.load(inputFile)
-  #Close that mofo!
-  inputFile.close()
-  #And process the data
-  processJSONData(inputData)
+  if inputFilePath != None:
+    inputFile = open(inputFilePath)
+    print "inputFile is: "
+    print inputFile
+    inputData = json.load(inputFile)
+    #Close that mofo!
+    inputFile.close()
+    #And process the data
+    processJSONData(inputData)
 
 
 FACSmap = {"A1": "happybig", "A2": "painbig"}
