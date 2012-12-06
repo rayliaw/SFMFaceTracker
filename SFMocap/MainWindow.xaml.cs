@@ -234,6 +234,17 @@ namespace SFMocap
                 JsonSerializer serializer = new JsonSerializer();
 
                 // Record AUs to object for JSON writer to convert
+                // {
+                //   "Time": [ ]
+                //   "LipRaiserAU": [ ]
+                //   "JawLowerAU": [ ]
+                //   "BrowLowerAU": [ ]
+                //   "LipDepressAU": [ ]
+                //   "BrowRaiserAU": [ ]
+                //   "XRotation": [ ]
+                //   "YRotation": [ ]
+                //   "ZRotation": [ ]
+                // }
                 au.Time = timeBuffer;
                 au.LipRaiserAU = lipRaiserBuffer;
                 au.JawLowerAU = jawLowerBuffer;
