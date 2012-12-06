@@ -33,22 +33,25 @@ namespace SFMocap
         private Skeleton[] skeletonData;
 
         // Lists to store AU coefficients
-        public List<double> lipRaiserBuffer = new List<double>();
-        public List<double> jawLowerBuffer = new List<double>();
-        public List<double> lipStretchBuffer = new List<double>();
-        public List<double> browLowerBuffer = new List<double>();
-        public List<double> lipDepressBuffer = new List<double>();
-        public List<double> browRaiserBuffer = new List<double>();
-        public List<double> xRotation = new List<double>();
-        public List<double> yRotation = new List<double>();
-        public List<double> zRotation = new List<double>();
+        private List<Int64> timeBuffer = new List<Int64>();
+        private List<double> lipRaiserBuffer = new List<double>();
+        private List<double> jawLowerBuffer = new List<double>();
+        private List<double> lipStretchBuffer = new List<double>();
+        private List<double> browLowerBuffer = new List<double>();
+        private List<double> lipDepressBuffer = new List<double>();
+        private List<double> browRaiserBuffer = new List<double>();
+        private List<double> xRotation = new List<double>();
+        private List<double> yRotation = new List<double>();
+        private List<double> zRotation = new List<double>();
 
         // Boolean for determining when record is enabled or not
         private bool isRecord = false;
+        Stopwatch stopwatch = new Stopwatch();
 
         // Object to record AU for JSON writing
         public class AUCoefficients
         {
+            public List<Int64> Time;
             public List<double> LipRaiserAU;
             public List<double> JawLowerAU;
             public List<double> LipStretchAU;
@@ -172,6 +175,9 @@ namespace SFMocap
                 // Records to list buffer if record is enabled
                 if (isRecord == true)
                 {
+                    // Start stopwatch
+                    stopwatch.Start();
+
                     // AU coefficients
                     lipRaiserBuffer.Add(AUCoeff[AnimationUnit.LipRaiser]);
                     jawLowerBuffer.Add(AUCoeff[AnimationUnit.JawLower]);
@@ -183,6 +189,8 @@ namespace SFMocap
                     xRotation.Add(faceFrame.Rotation.X);
                     yRotation.Add(faceFrame.Rotation.Y);
                     zRotation.Add(faceFrame.Rotation.Z);
+                    // Get time in ms
+                    timeBuffer.Add(stopwatch.ElapsedMilliseconds);
                 }
 
                 // Display on UI coefficients and rotation for user
@@ -222,9 +230,11 @@ namespace SFMocap
             else
             {
                 isRecord = false;
+                stopwatch.Stop();
                 JsonSerializer serializer = new JsonSerializer();
 
                 // Record AUs to object for JSON writer to convert
+                au.Time = timeBuffer;
                 au.LipRaiserAU = lipRaiserBuffer;
                 au.JawLowerAU = jawLowerBuffer;
                 au.LipStretchAU = lipStretchBuffer;
