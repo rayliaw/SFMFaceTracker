@@ -12,8 +12,12 @@ using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Navigation;
 using System.Windows.Shapes;
+using System.IO;
 using Microsoft.Kinect;
 using Microsoft.Kinect.Toolkit.FaceTracking;
+using Newtonsoft.Json;
+
+using System.Diagnostics;
 
 namespace SFMocap
 {
@@ -27,6 +31,34 @@ namespace SFMocap
         private byte[] colorPixelData;
         private short[] depthPixelData;
         private Skeleton[] skeletonData;
+
+        // Lists to store AU coefficients
+        public List<double> lipRaiserBuffer = new List<double>();
+        public List<double> jawLowerBuffer = new List<double>();
+        public List<double> lipStretchBuffer = new List<double>();
+        public List<double> browLowerBuffer = new List<double>();
+        public List<double> lipDepressBuffer = new List<double>();
+        public List<double> browRaiserBuffer = new List<double>();
+        public List<double> xRotation = new List<double>();
+        public List<double> yRotation = new List<double>();
+        public List<double> zRotation = new List<double>();
+
+        // Boolean for determining when record is enabled or not
+        private bool isRecord = false;
+
+        // Object to record AU for JSON writing
+        public class AUCoefficients
+        {
+            public List<double> LipRaiserAU;
+            public List<double> JawLowerAU;
+            public List<double> LipStretchAU;
+            public List<double> BrowLowerAU;
+            public List<double> LipDepressAU;
+            public List<double> BrowRaiserAU;
+            public List<double> XRotation;
+            public List<double> YRotation;
+            public List<double> ZRotation;
+        }
 
         public MainWindow()
         {
@@ -77,7 +109,7 @@ namespace SFMocap
             kinectSensor.SkeletonStream.TrackingMode = SkeletonTrackingMode.Seated;
             kinectSensor.SkeletonStream.Enable(new TransformSmoothParameters() { Correction = 0.5f, JitterRadius = 0.05f, MaxDeviationRadius = 0.05f, Prediction = 0.5f, Smoothing = 0.5f });
 
-            // Listen to the AllFramesReady event to receive KinectSensor's data.
+            // Listen to the AllFramesReady event to receive KinectSensor's data
             kinectSensor.AllFramesReady += new EventHandler<AllFramesReadyEventArgs>(kinectSensor_AllFramesReady);
 
             // Initialize data arrays
@@ -131,32 +163,88 @@ namespace SFMocap
                                               kinectSensor.DepthStream.Format, depthPixelData,
                                               skeleton);
 
-            // If a face is tracked, then we can use it.
+            // If a face is tracked, then we can use it
             if (faceFrame.TrackSuccessful)
             {
-                // Retrieve only the Animation Units coeffs.
+                // Retrieve only the Animation Units coeffs
                 var AUCoeff = faceFrame.GetAnimationUnitCoefficients();
 
+                // Records to list buffer if record is enabled
+                if (isRecord == true)
+                {
+                    // AU coefficients
+                    lipRaiserBuffer.Add(AUCoeff[AnimationUnit.LipRaiser]);
+                    jawLowerBuffer.Add(AUCoeff[AnimationUnit.JawLower]);
+                    lipStretchBuffer.Add(AUCoeff[AnimationUnit.LipStretcher]);
+                    browLowerBuffer.Add(AUCoeff[AnimationUnit.BrowLower]);
+                    lipDepressBuffer.Add(AUCoeff[AnimationUnit.LipCornerDepressor]);
+                    browRaiserBuffer.Add(AUCoeff[AnimationUnit.BrowLower]);
+                    // Face rotation
+                    xRotation.Add(faceFrame.Rotation.X);
+                    yRotation.Add(faceFrame.Rotation.Y);
+                    zRotation.Add(faceFrame.Rotation.Z);
+                }
+
+                // Display on UI coefficients and rotation for user
                 LipRaiser.Content = AUCoeff[AnimationUnit.LipRaiser];
                 JawLower.Content = AUCoeff[AnimationUnit.JawLower];
                 LipStretch.Content = AUCoeff[AnimationUnit.LipStretcher];
                 BrowLower.Content = AUCoeff[AnimationUnit.BrowLower];
                 LipDepress.Content = AUCoeff[AnimationUnit.LipCornerDepressor];
                 BrowRaiser.Content = AUCoeff[AnimationUnit.BrowRaiser];
+                XRotation.Content = faceFrame.Rotation.X;
+                YRotation.Content = faceFrame.Rotation.Y;
+                ZRotation.Content = faceFrame.Rotation.Z;
 
+                // Animates the drawn face
                 var jawLowerer = AUCoeff[AnimationUnit.JawLower];
                 jawLowerer = jawLowerer < 0 ? 0 : jawLowerer;
                 MouthScaleTransform.ScaleY = jawLowerer * 5 + 0.1;
                 MouthScaleTransform.ScaleX = (AUCoeff[AnimationUnit.LipStretcher] + 1);
-
                 LeftBrow.Y = RightBrow.Y = (AUCoeff[AnimationUnit.BrowLower]) * 40;
-
                 RightBrowRotate.Angle = (AUCoeff[AnimationUnit.BrowRaiser] * 20);
                 LeftBrowRotate.Angle = -RightBrowRotate.Angle;
-
                 CanvasRotate.Angle = faceFrame.Rotation.Z;
-                //CanvasTranslate.X = faceFrame.Translation.X;
-                //CanvasTranslate.Y = faceFrame.Translation.Y;
+            }
+        }
+
+        // Tracks when record button is click and starts recording to JSON
+        private void RecordButton_Click(Object sender, RoutedEventArgs e)
+        {
+            AUCoefficients au = new AUCoefficients();
+
+            // Toggles on record that will start recording AU coefficients to buffer
+            if (!isRecord)
+            {
+                isRecord = true;
+            }
+            // When record is disabled write stored AUs to JSON object
+            else
+            {
+                isRecord = false;
+                JsonSerializer serializer = new JsonSerializer();
+
+                // Record AUs to object for JSON writer to convert
+                au.LipRaiserAU = lipRaiserBuffer;
+                au.JawLowerAU = jawLowerBuffer;
+                au.LipStretchAU = lipStretchBuffer;
+                au.BrowLowerAU = browLowerBuffer;
+                au.LipDepressAU = lipDepressBuffer;
+                au.BrowRaiserAU = browRaiserBuffer;
+                au.XRotation = xRotation;
+                au.YRotation = yRotation;
+                au.ZRotation = zRotation;
+
+                // File path settings -- currently json.txt in My Documents folder
+                string myDocuments = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
+                string path = System.IO.Path.Combine(myDocuments, "json.txt");
+
+                // Writes AUCoefficients
+                using (StreamWriter sw = new StreamWriter(path))
+                using (JsonWriter jw = new JsonTextWriter(sw))
+                {
+                    serializer.Serialize(jw, au);
+                }
             }
         }
     }

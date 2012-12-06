@@ -13,6 +13,10 @@
                     <Label x:Name="BrowLower">Brow Lower</Label>
                     <Label x:Name="LipDepress">Lip Depress</Label>
                     <Label x:Name="BrowRaiser">Brow Raise</Label>
+                    <Label x:Name="XRotation">X Rotation</Label>
+                    <Label x:Name="YRotation">Y Rotation</Label>
+                    <Label x:Name="ZRotation">Z Rotation</Label>
+                    <Button Content="Write" Height="Auto" Width="100" HorizontalAlignment="Left" Name="buttonWrite" Click="RecordButton_Click" />
                 </StackPanel>
             </Grid>
 
