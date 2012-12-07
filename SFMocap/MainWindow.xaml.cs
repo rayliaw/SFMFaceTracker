@@ -63,6 +63,48 @@ namespace SFMocap
             public List<double> ZRotation;
         }
 
+        public class auJSONpoint
+        {
+            public Int64 time { get; set; }
+            public double value { get; set; }
+
+            public auJSONpoint(long t, double v)
+            {
+                time = t;
+                value = v;
+            }
+        }
+
+        public class auJSONData
+        {
+            public List<auJSONpoint> A10;
+            public List<auJSONpoint> A26;
+            public List<auJSONpoint> A27;
+            public List<auJSONpoint> A20;
+            public List<auJSONpoint> A4;
+            public List<auJSONpoint> A13;
+            public List<auJSONpoint> A15;
+            public List<auJSONpoint> A2;
+            public List<auJSONpoint> xRotation;
+            public List<auJSONpoint> yRotation;
+            public List<auJSONpoint> zRotation;
+
+            public auJSONData()
+            {
+                A10 = new List<auJSONpoint>();
+                A26 = new List<auJSONpoint>();
+                A27 = new List<auJSONpoint>();
+                A20 = new List<auJSONpoint>();
+                A4 = new List<auJSONpoint>();
+                A13 = new List<auJSONpoint>();
+                A15 = new List<auJSONpoint>();
+                A2 = new List<auJSONpoint>();
+                xRotation = new List<auJSONpoint>();
+                yRotation = new List<auJSONpoint>();
+                zRotation = new List<auJSONpoint>();
+            }
+        }
+
         public MainWindow()
         {
             InitializeComponent();
@@ -216,10 +258,12 @@ namespace SFMocap
             }
         }
 
+
         // Tracks when record button is click and starts recording to JSON
         private void RecordButton_Click(Object sender, RoutedEventArgs e)
         {
             AUCoefficients au = new AUCoefficients();
+            auJSONData auData = new auJSONData();
 
             // Toggles on record that will start recording AU coefficients to buffer
             if (!isRecord)
@@ -233,7 +277,51 @@ namespace SFMocap
                 stopwatch.Stop();
                 JsonSerializer serializer = new JsonSerializer();
 
+
+
                 // Record AUs to object for JSON writer to convert
+                for (int i = 0; i < timeBuffer.Count; i++){
+                    // For each element, make sure the length of the data is in range, then add it
+                    if (i < lipRaiserBuffer.Count)
+                    {
+                        auData.A10.Add(new auJSONpoint(timeBuffer[i], lipRaiserBuffer[i]));
+                    }
+                    if (i < jawLowerBuffer.Count)
+                    {
+                        auData.A26.Add(new auJSONpoint(timeBuffer[i], jawLowerBuffer[i]));
+                        auData.A27.Add(new auJSONpoint(timeBuffer[i], lipRaiserBuffer[i]));
+                    }
+                    if (i < lipStretchBuffer.Count)
+                    {
+                        auData.A20.Add(new auJSONpoint(timeBuffer[i], lipStretchBuffer[i]));
+                    }
+                    if (i < browLowerBuffer.Count)
+                    {
+                        auData.A4.Add(new auJSONpoint(timeBuffer[i], browLowerBuffer[i]));
+                    }
+                    if (i < lipDepressBuffer.Count)
+                    {
+                        auData.A13.Add(new auJSONpoint(timeBuffer[i], lipDepressBuffer[i]));
+                        auData.A15.Add(new auJSONpoint(timeBuffer[i], lipDepressBuffer[i]));
+                    }
+                    if (i < browRaiserBuffer.Count)
+                    {
+                        auData.A2.Add(new auJSONpoint(timeBuffer[i], browRaiserBuffer[i]));
+                    }
+                    if (i < xRotation.Count)
+                    {
+                        auData.xRotation.Add(new auJSONpoint(timeBuffer[i], xRotation[i]));
+                    }
+                    if (i < yRotation.Count)
+                    {
+                        auData.yRotation.Add(new auJSONpoint(timeBuffer[i], yRotation[i]));
+                    }
+                    if (i < zRotation.Count)
+                    {
+                        auData.zRotation.Add(new auJSONpoint(timeBuffer[i], zRotation[i]));
+                    }
+                }
+
                 // {
                 //   "Time": [ ]
                 //   "LipRaiserAU": [ ]
@@ -245,7 +333,7 @@ namespace SFMocap
                 //   "YRotation": [ ]
                 //   "ZRotation": [ ]
                 // }
-                au.Time = timeBuffer;
+                /*au.Time = timeBuffer;
                 au.LipRaiserAU = lipRaiserBuffer;
                 au.JawLowerAU = jawLowerBuffer;
                 au.LipStretchAU = lipStretchBuffer;
@@ -255,7 +343,7 @@ namespace SFMocap
                 au.XRotation = xRotation;
                 au.YRotation = yRotation;
                 au.ZRotation = zRotation;
-
+                */
                 // File path settings -- currently json.txt in My Documents folder
                 string myDocuments = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
                 string path = System.IO.Path.Combine(myDocuments, "json.txt");
@@ -264,8 +352,9 @@ namespace SFMocap
                 using (StreamWriter sw = new StreamWriter(path))
                 using (JsonWriter jw = new JsonTextWriter(sw))
                 {
-                    serializer.Serialize(jw, au);
+                    serializer.Serialize(jw, auData);
                 }
+                Console.WriteLine(auData);
             }
         }
     }
