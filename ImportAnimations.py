@@ -20,20 +20,22 @@ except ImportError:
     from Tkinter import Tk as ttk
    
 
-def replaceAnimationLog(animationLog, timePoints, valuePoints):
-  #TODO: Add sanity checking on input lengths
-  inputLength = len(timePoints)
+def replaceAnimationLog(animationLog, timePoints, originalValuePoints):
   
-  #Next, we're going to convert our times into 
+  #Next, we're going to convert our times into dmeTimePoints
   dmeTimePoints = []
   for time in timePoints:
     dmeTimePoints.append(vs.DmeTime_t(time))
+    
+  # And we want a local copy of our valuePoints array, so we don't mess it up
+  #  for symmetric animation replacements that use the same input values
+  valuePoints = list(originalValuePoints)
   
   #TODO: allow us to overwrite the 0th point, since we don't just automatically trash all the data now
   
   # First, let's delete any old data that our animation will overwrite
   insertionPoint = -1
-  for i in range(1, len(animationLog.times)):
+  for i in range(0, len(animationLog.times)):
     # If we hit a point that's past all of our time points, let's note that that's where
     #  we should be inserting points
     if (i < len(animationLog.times)) and \
@@ -47,43 +49,75 @@ def replaceAnimationLog(animationLog, timePoints, valuePoints):
     while (i < len(animationLog.times)) and \
           (animationLog.times[i] >= dmeTimePoints[0]) and \
           (animationLog.times[i] <= dmeTimePoints[-1]) :
-      # Keep deleting elements at this point - this deletion will stop until 
+      # Keep deleting elements at this point, until the conditions of the while loop are broken
       del animationLog.times[i]
       del animationLog.values[i]
       # Note where this overlapped data started - that way, we know where to put
       #  the data in next
       insertionPoint = i
+      
+  
    
   # If the insertion point was never changed, tell us to insert at the end
   if insertionPoint == -1:
     insertionPoint = len(animationLog.times)
+    
+  # If there are points before our new data, we'll insert a new frame
+  #  just before our animation in order to have a crisp transition
+  if insertionPoint > 0:
+    if (dmeTimePoints[0] - animationLog.times[insertionPoint - 1] > vs.DmeTime_t(20)):
+      print "Added beginning point"
+      print "values were: "
+      print  valuePoints
+      value = animationLog.values[insertionPoint - 1]
+      dmeTimePoints.insert(0, dmeTimePoints[0] - vs.DmeTime_t(1))
+      valuePoints.insert(0, value)
+      print "values are: "
+      print valuePoints
+    else:
+      print "Would have added a beginning point, but a point already existed"
+  
+  if insertionPoint < len(animationLog.times):
+    if (animationLog.times[insertionPoint] - dmeTimePoints[-1] > vs.DmeTime_t(20)):
+      value = animationLog.values[insertionPoint]
+      dmeTimePoints.append(dmeTimePoints[-1] + vs.DmeTime_t(1))
+      valuePoints.append(value)
+      print "Added end point"
+    else:
+      print "Would have added an end point, but a point already existed"
     # And add in a keyframe to the start of our new data
     #  to provide a nice crisp transition for the data
     #  so long as there isn't already a data point too close
-#    currentTimesLen = len(control.channel.log.layers[0].times)
-#    if (dmeTimePoints[0] - control.channel.log.layers[0].times[currentTimesLen - 1]) > vs.DmeTime_t(2):
-#      print("adding in buffer key")
-#      dmeTimePoints.insert(0, dmeTimePoints[0] - vs.DmeTime_t(1))
-#      currentValuesLen = len(control.channel.log.layers[0].values)
-#      valuePoints.insert(0, control.channel.log.layers[0].values[currentValuesLen -1])
-#    else:
-#      print "Already a point was close - didn't add in buffer frame"
-  #And make sure we reset our zero element to zero.
-  #control.channel.log.layers[0].times[0] = vs.DmeTime_t(0)
-  #control.channel.log.layers[0].values[0] = 0
   
-  # Note! We're just appending data, so we'll always keep
-  #  a starting point at time = 0, value = 0
-  for i in range(0, inputLength):
+  # Insert the data at the correct point
+  for i in range(0, len(dmeTimePoints)):
     # Add in values for the time and value
     animationLog.times.insert(insertionPoint + i, dmeTimePoints[i])
     animationLog.values.insert(insertionPoint + i,valuePoints[i])
    
-def replaceControlAnimation(controlName, timePoints, valuePoints, controlType="single"):
-  # First, let's get our channel
+def replaceControlAnimation(controlName, timePoints, originalValuePoints,
+                            controlType = "single", offset = 0, multiplier = 1):
+  #First, sanity checking on input lengths
+  if len(timePoints) != len(originalValuePoints):
+    print "Lengths of time points and value points didn't match up,"
+    print "so no animation was imported for the " + controlName + " control."
+    return
+    
+  # Next, let's get our channel
   animSet = sfm.GetCurrentAnimationSet()
   rootGroup = animSet.GetRootControlGroup()
   control = rootGroup.FindControlByName( controlName, True )
+  
+  #Make a copy of the value points, since we want to only work on a local copy
+  valuePoints = list(originalValuePoints)
+  #Now adjust the value points
+  for i, value in enumerate(valuePoints):
+    value = (value * multiplier) + offset
+    if value > 1:
+      value = 1
+    elif value < 0:
+      value = 0
+    valuePoints[i] = value
   
   if controlType == "single":
     animationLog = control.channel.log.layers[0]
@@ -123,7 +157,19 @@ def loadAndProcessFile():
     processJSONData(inputData)
 
 
-FACSmap = {"A26": {"control":"JawV", "controlType":"single"}, "A2": {"control":"JawV", "controlType":"single"}, "A1": {"control":"BrowOutV", "controlType":"symmetric"}}
+FACSmap = {"A1": {"controlList": [{"name":"BrowOutV", "type":"symmetric", "offset": 0, "multiplier": 1}]},
+           "A10": {"controlList": [{"name":"LipUpV", "type":"symmetric", "offset": 0.5, "multiplier": 0.5}]},
+           "A26": {"controlList":[{"name":"JawV", "type":"single", "offset": 0, "multiplier": 1},
+                                  {"name":"LipLoV", "type":"symmetric", "offset": 0.5, "multiplier": 0.45} ]},
+           "A20": {"controlList": [{"name":"PuckerLipUp", "type":"symmetric", "offset": 0, "multiplier": -1},
+                                   {"name":"PuckerLipLo", "type":"symmetric", "offset": 0, "multiplier": -1},
+                                   {"name":"Platysmus", "type":"symmetric", "offset": 0, "multiplier": 1}]},
+           "A4": {"controlList": [{"name":"Frown", "type":"symmetric", "offset": 0, "multiplier": 1},
+                                  {"name":"BrowInV", "type":"symmetric", "offset": 0, "multiplier": -0.5}]},
+           "A13": {"controlList": [{"name":"Platysmus", "type":"symmetric", "offset": 0, "multiplier": 1},
+                                   {"name":"Smile", "type":"symmetric", "offset": 0, "multiplier": -1}]},
+           "A2": {"controlList": [{"name":"BrowOutV", "type":"symmetric", "offset": 0, "multiplier": 1}]}
+           }
 
 def processJSONData(inputData):
   for AU in inputData:
@@ -140,10 +186,14 @@ def processJSONData(inputData):
       auTimes = []
       auValues = []
       for element in inputData[AU]:
-        auTimes.append(element["time"] + offset)
-        auValues.append(element["value"])
+        auTimes.append((element["time"] * 10) + offset)
+        auValues.append((element["value"]))
       # Now push those arrays to the animation control
-      replaceControlAnimation(FACSmap[AU]["control"], auTimes, auValues, FACSmap[AU]["controlType"])
+      # control[0] is the control name,
+      for control in FACSmap[AU]["controlList"]:
+        replaceControlAnimation(control["name"], auTimes, auValues, control["type"],
+                                control["offset"], control["multiplier"])
+        
     else:
       print "Wasn't in FACSmap:"
       print AU
