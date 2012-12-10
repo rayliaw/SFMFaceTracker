@@ -49,7 +49,7 @@ namespace SFMocap
         Stopwatch stopwatch = new Stopwatch();
 
         // Object to record AU for JSON writing
-        public class AUCoefficients
+        private class AUCoefficients
         {
             public List<Int64> Time;
             public List<double> LipRaiserAU;
