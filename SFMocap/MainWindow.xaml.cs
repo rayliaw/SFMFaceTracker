@@ -49,7 +49,7 @@ namespace SFMocap
         Stopwatch stopwatch = new Stopwatch();
 
         // Object to record AU for JSON writing
-        private class AUCoefficients
+  /*      private class AUCoefficients
         {
             public List<Int64> Time;
             public List<double> LipRaiserAU;
@@ -58,11 +58,11 @@ namespace SFMocap
             public List<double> BrowLowerAU;
             public List<double> LipDepressAU;
             public List<double> BrowRaiserAU;
-            public List<double> XRotation;
-            public List<double> YRotation;
-            public List<double> ZRotation;
+            public List<double> facePitch;
+            public List<double> faceYaw;
+            public List<double> faceRoll;
         }
-
+        */
         public class auJSONpoint
         {
             public Int64 time { get; set; }
@@ -85,9 +85,9 @@ namespace SFMocap
             public List<auJSONpoint> A13;
             public List<auJSONpoint> A15;
             public List<auJSONpoint> A2;
-            public List<auJSONpoint> xRotation;
-            public List<auJSONpoint> yRotation;
-            public List<auJSONpoint> zRotation;
+            public List<auJSONpoint> facePitch;
+            public List<auJSONpoint> faceYaw;
+            public List<auJSONpoint> faceRoll;
 
             public auJSONData()
             {
@@ -99,9 +99,9 @@ namespace SFMocap
                 A13 = new List<auJSONpoint>();
                 A15 = new List<auJSONpoint>();
                 A2 = new List<auJSONpoint>();
-                xRotation = new List<auJSONpoint>();
-                yRotation = new List<auJSONpoint>();
-                zRotation = new List<auJSONpoint>();
+                facePitch = new List<auJSONpoint>();
+                faceYaw = new List<auJSONpoint>();
+                faceRoll = new List<auJSONpoint>();
             }
         }
 
@@ -262,7 +262,7 @@ namespace SFMocap
         // Tracks when record button is click and starts recording to JSON
         private void RecordButton_Click(Object sender, RoutedEventArgs e)
         {
-            AUCoefficients au = new AUCoefficients();
+            //AUCoefficients au = new AUCoefficients();
             auJSONData auData = new auJSONData();
 
             // Toggles on record that will start recording AU coefficients to buffer
@@ -310,15 +310,15 @@ namespace SFMocap
                     }
                     if (i < xRotation.Count)
                     {
-                        auData.xRotation.Add(new auJSONpoint(timeBuffer[i], xRotation[i]));
+                        auData.facePitch.Add(new auJSONpoint(timeBuffer[i], xRotation[i]));
                     }
                     if (i < yRotation.Count)
                     {
-                        auData.yRotation.Add(new auJSONpoint(timeBuffer[i], yRotation[i]));
+                        auData.faceYaw.Add(new auJSONpoint(timeBuffer[i], yRotation[i]));
                     }
                     if (i < zRotation.Count)
                     {
-                        auData.zRotation.Add(new auJSONpoint(timeBuffer[i], zRotation[i]));
+                        auData.faceRoll.Add(new auJSONpoint(timeBuffer[i], zRotation[i]));
                     }
                 }
 
