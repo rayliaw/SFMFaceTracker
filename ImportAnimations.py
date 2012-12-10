@@ -7,6 +7,10 @@ from vs import mathlib
 from win32gui import MessageBox
 from win32con import MB_ICONINFORMATION, MB_ICONEXCLAMATION, MB_ICONERROR
 
+
+#Constants
+headPitchOffset = -40
+
 #TODO: Sanity checking on inputs
 #      Add in border frames to input
 #         - if there's no frame within a certain distance of each end, then add in one
@@ -225,7 +229,7 @@ def processJSONData(inputData):
   yawValues = []
   for element in pitchPoints:
     times.append((element["time"] * 10) + offset)
-    pitchValues.append(element["value"])
+    pitchValues.append(element["value"] + headPitchOffset)
   for element in rollPoints:
     rollValues.append(element["value"])
   for element in yawPoints:
@@ -244,7 +248,7 @@ def processJSONData(inputData):
     quaternion = mathlib.Quaternion(radianEulerAngle)
     quaternionValues.append(quaternion)
     
-  #replaceRotationAnimation("bip_head", times, quaternionValues)
+  replaceRotationAnimation("bip_head", times, quaternionValues)
   
 sys.argv = ' '
 # Create the window and give it a title
