@@ -66,25 +66,15 @@ def replaceAnimationLog(animationLog, timePoints, originalValuePoints):
   #  just before our animation in order to have a crisp transition
   if insertionPoint > 0:
     if (dmeTimePoints[0] - animationLog.times[insertionPoint - 1] > vs.DmeTime_t(20)):
-      print "Added beginning point"
-      print "values were: "
-      print  valuePoints
       value = animationLog.values[insertionPoint - 1]
       dmeTimePoints.insert(0, dmeTimePoints[0] - vs.DmeTime_t(1))
       valuePoints.insert(0, value)
-      print "values are: "
-      print valuePoints
-    else:
-      print "Would have added a beginning point, but a point already existed"
   
   if insertionPoint < len(animationLog.times):
     if (animationLog.times[insertionPoint] - dmeTimePoints[-1] > vs.DmeTime_t(20)):
       value = animationLog.values[insertionPoint]
       dmeTimePoints.append(dmeTimePoints[-1] + vs.DmeTime_t(1))
       valuePoints.append(value)
-      print "Added end point"
-    else:
-      print "Would have added an end point, but a point already existed"
     # And add in a keyframe to the start of our new data
     #  to provide a nice crisp transition for the data
     #  so long as there isn't already a data point too close
@@ -149,7 +139,7 @@ def loadAndProcessFile():
   if inputFilePath != None:
     inputFile = open(inputFilePath)
     print "inputFile is: "
-    print inputFile
+    print inputFilePath
     inputData = json.load(inputFile)
     #Close that mofo!
     inputFile.close()
@@ -177,8 +167,6 @@ def processJSONData(inputData):
     #  offset the times by that
     offset = 0
     if AU in FACSmap:
-      print "current AU is:"
-      print AU
       if absoluteTime.get() == 0 and int(fps.get()) > 0 :
         currentFrame = sfm.GetCurrentFrame()
         offset = (currentFrame / int(fps.get())) * 10000
@@ -234,8 +222,6 @@ Button(mainframe, text="Load File...", command=loadAndProcessFile).grid(column=3
 # Add some padding around all the widgets so they don't get in each others' faces
 for child in mainframe.winfo_children(): child.grid_configure(padx=5, pady=5)
 
-print "Tkinter version"
-print TkVersion
 
 # Aaaand run Tkinter's main loop, so everything updates
 root.mainloop()
