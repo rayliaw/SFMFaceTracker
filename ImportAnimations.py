@@ -1,3 +1,46 @@
+#  ImportAnimations.py
+#
+#   A tool for importing well-formatted JSON objects listing time/value points
+#    and turning those points into animation curves in Source Filmmaker.
+#
+#    To use, create a JSON file with the same schema as the included
+#     syntheticTestData.json file (or just use that to start playing
+#     around with), import one of the HWM models into your SFM session,
+#     then right click on the model, choose 'Rig->Load Rig Script',
+#     and then use the window that shows up to select the json file you want
+#     to import data from.
+#    If the 'absolute' box is unchecked, then the animation will be placed near
+#     the current position of the playhead. Otherwise, the animation curve will
+#     use 0:00:00 as the 0 time point.
+#    More about the JSON schema - the schema is basically:
+#     {
+#        "Name of action unit": [ ...List of points... ],
+#        "Name of next action unit" : [ ...List of points...]
+#     }
+#     and each point is of the format
+#      { "time" : time in ms, "value": value for that time point}
+#     like
+#      { "time" : 2000, "value": 0.3 }
+#
+#     Caveats- the Python json handler chokes if there are any extra
+#     commas at the end of lists, or if there are no leading 0 on decimal numbers
+#
+#   To remap how these action units get translated, 
+#    mess with the FACSMap dictionary below.
+#    It's structure is:
+#    "incoming AU name" : {"controlList: [ ...List of controls to map to...]}
+#    where the controls to map to are listed by their names in SFM, the type
+#    of motion to map (if it's a control with a left and right channel, 
+#    choose 'left', 'right', or 'symmetric'), then an offset and a multiplier
+#    in order to adjust the incoming data to look better. 
+#
+#
+#   Copyright 2012 - Alan Chatham
+#   This code is released to the public under the GNU Public License, version 3
+#   The full licence can be read in the included gpl-3.0.txt file, or at
+#   http://www.gnu.org/licenses/gpl-3.0.txt
+
+
 import vs
 import sfmUtils
 import os
@@ -7,9 +50,28 @@ from vs import mathlib
 from win32gui import MessageBox
 from win32con import MB_ICONINFORMATION, MB_ICONEXCLAMATION, MB_ICONERROR
 
-
-#Constants
-headPitchOffset = 0
+FACSmap = {"A1": {"controlList": [{"name":"BrowOutV", "type":"symmetric", "offset": 0, "multiplier": 1}]},
+           "A10": {"controlList": [{"name":"LipUpV", "type":"symmetric", "offset": 0.5, "multiplier": 0.5}]},
+           "A26": {"controlList":[{"name":"JawV", "type":"single", "offset": 0, "multiplier": 1},
+                                  {"name":"LipLoV", "type":"symmetric", "offset": 0.5, "multiplier": 0.45} ]},
+           "AU26": {"controlList":[{"name":"JawV", "type":"single", "offset": 0, "multiplier": 1},
+                                  {"name":"LipLoV", "type":"symmetric", "offset": 0.5, "multiplier": 0.45},
+                                  {"name":"LipUpV", "type":"symmetric", "offset": 0.4, "multiplier": 0.35}]},
+           "A20": {"controlList": [{"name":"PuckerLipUp", "type":"symmetric", "offset": 0, "multiplier": -2},
+                                   {"name":"PuckerLipLo", "type":"symmetric", "offset": 0, "multiplier": -2},
+                                   {"name":"Platysmus", "type":"symmetric", "offset": 0, "multiplier": 1}]},
+           "A4": {"controlList": [{"name":"Frown", "type":"symmetric", "offset": 0, "multiplier": 1},
+                                  {"name":"BrowInV", "type":"symmetric", "offset": 0.5, "multiplier": -0.5}]},
+           "A13": {"controlList": [{"name":"Platysmus", "type":"symmetric", "offset": 0, "multiplier": 1},
+                                   {"name":"Smile", "type":"symmetric", "offset": 0, "multiplier": -1}]},
+           "A2": {"controlList": [{"name":"BrowOutV", "type":"symmetric", "offset": 0, "multiplier": 2}]},
+           "leftEye" : {"controlList" :[{"name":"CloseLid", "type":"left", "offset": 1, "multiplier": -.7}]},
+           "rightEye" : {"controlList" :[{"name":"CloseLid", "type":"right", "offset": 1, "multiplier": -.7}]},
+           "leftBrow" : {"controlList" :[{"name":"BrowOutV", "type":"left", "offset": 0, "multiplier": 1},
+                                         {"name":"BrowInV", "type":"left", "offset": .5, "multiplier": .5}]},
+           "rightBrow" : {"controlList" :[{"name":"BrowOutV", "type":"right", "offset": 0, "multiplier": 1},
+                                         {"name":"BrowInV", "type":"right", "offset": .5, "multiplier": .5}]}
+           }
 
 #TODO: Sanity checking on inputs
 #      Add in border frames to input
@@ -171,30 +233,6 @@ def loadAndProcessFile():
     inputFile.close()
     #And process the data
     processJSONData(inputData)
-
-
-FACSmap = {"A1": {"controlList": [{"name":"BrowOutV", "type":"symmetric", "offset": 0, "multiplier": 1}]},
-           "A10": {"controlList": [{"name":"LipUpV", "type":"symmetric", "offset": 0.5, "multiplier": 0.5}]},
-           "A26": {"controlList":[{"name":"JawV", "type":"single", "offset": 0, "multiplier": 1},
-                                  {"name":"LipLoV", "type":"symmetric", "offset": 0.5, "multiplier": 0.45} ]},
-           "AU26": {"controlList":[{"name":"JawV", "type":"single", "offset": 0, "multiplier": 1},
-                                  {"name":"LipLoV", "type":"symmetric", "offset": 0.5, "multiplier": 0.45},
-                                  {"name":"LipUpV", "type":"symmetric", "offset": 0.4, "multiplier": 0.35}]},
-           "A20": {"controlList": [{"name":"PuckerLipUp", "type":"symmetric", "offset": 0, "multiplier": -2},
-                                   {"name":"PuckerLipLo", "type":"symmetric", "offset": 0, "multiplier": -2},
-                                   {"name":"Platysmus", "type":"symmetric", "offset": 0, "multiplier": 1}]},
-           "A4": {"controlList": [{"name":"Frown", "type":"symmetric", "offset": 0, "multiplier": 1},
-                                  {"name":"BrowInV", "type":"symmetric", "offset": 0.5, "multiplier": -0.5}]},
-           "A13": {"controlList": [{"name":"Platysmus", "type":"symmetric", "offset": 0, "multiplier": 1},
-                                   {"name":"Smile", "type":"symmetric", "offset": 0, "multiplier": -1}]},
-           "A2": {"controlList": [{"name":"BrowOutV", "type":"symmetric", "offset": 0, "multiplier": 2}]},
-           "leftEye" : {"controlList" :[{"name":"CloseLid", "type":"left", "offset": 1, "multiplier": -.7}]},
-           "rightEye" : {"controlList" :[{"name":"CloseLid", "type":"right", "offset": 1, "multiplier": -.7}]},
-           "leftBrow" : {"controlList" :[{"name":"BrowOutV", "type":"left", "offset": 0, "multiplier": 1},
-                                         {"name":"BrowInV", "type":"left", "offset": .5, "multiplier": .5}]},
-           "rightBrow" : {"controlList" :[{"name":"BrowOutV", "type":"right", "offset": 0, "multiplier": 1},
-                                         {"name":"BrowInV", "type":"right", "offset": .5, "multiplier": .5}]}
-           }
            
 
 def processJSONData(inputData):
@@ -252,7 +290,7 @@ def processJSONData(inputData):
     yawValues = []
     for element in pitchPoints:
       times.append((element["time"] * 10) + offset)
-      pitchValues.append(element["value"] + headPitchOffset)
+      pitchValues.append(element["value"] * -1)
     for element in rollPoints:
       #If we didn't get times from pitch...
       if len(times) == 0:
@@ -263,7 +301,7 @@ def processJSONData(inputData):
       #(We're guaranteed one of these lists has values at least)
       if len(times) == 0:
         times.append((element["time"] * 10) + offset)
-      yawValues.append(element["value"])
+      yawValues.append(element["value"] * -1)
       
     #Now fill in any blank data with zeroes
     if len(pitchValues) == 0:
@@ -284,7 +322,7 @@ def processJSONData(inputData):
     quaternionValues = []
     #Now make some quaternions out of those values
     for i in range(0, len(pitchValues)):
-      qAngle = mathlib.QAngle(rollValues[i], yawValues[i], pitchValues[i])
+      qAngle = mathlib.QAngle(yawValues[i], rollValues[i], pitchValues[i])
       # Can we go from that straight to quaternion?
       radianEulerAngle = mathlib.RadianEuler(qAngle)
       quaternion = mathlib.Quaternion(radianEulerAngle)
