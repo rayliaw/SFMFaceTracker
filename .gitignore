@@ -16,6 +16,8 @@ local.properties
 .settings/
 .loadpath
 
+vectorQuaternionTest.py
+
 # External tool builders
 .externalToolBuilders/
 
