@@ -9,7 +9,7 @@ from win32con import MB_ICONINFORMATION, MB_ICONEXCLAMATION, MB_ICONERROR
 
 
 #Constants
-headPitchOffset = -40
+headPitchOffset = 0
 
 #TODO: Sanity checking on inputs
 #      Add in border frames to input
@@ -131,7 +131,7 @@ def replaceControlAnimation(controlName, timePoints, originalValuePoints,
   else:
     print "You called replaceControlAnimation wrong, " + controlType + " isn't a valid parameter. You can use 'single', 'left', 'right', or 'symmetric'"
 
-def replaceRotationAnimation(controlName, timePoints, originalValuePoints):
+def replaceRotationAnimation(controlName, timePoints, originalValuePoints, addToDefault = True, additive=True):
   # Next, let's get our channel
   animSet = sfm.GetCurrentAnimationSet()
   rootGroup = animSet.GetRootControlGroup()
@@ -139,6 +139,15 @@ def replaceRotationAnimation(controlName, timePoints, originalValuePoints):
   
   #Make a copy of the value points, since we want to only work on a local copy
   valuePoints = list(originalValuePoints)
+  
+  #Now, we'll make it so we're adding the rotation to the default
+  if (addToDefault == True):
+    defaultQuaternion = control.valueOrientation
+  
+  # I'm just glad this mathimagically works. 
+  #  'Cause I sure don't understand quaternion math.
+  for i, quaternion in enumerate(valuePoints):
+    valuePoints[i] = quaternion * defaultQuaternion
   
   # Now replace the animation!
   animationLog = control.orientationChannel.log.layers[0]
@@ -168,6 +177,9 @@ FACSmap = {"A1": {"controlList": [{"name":"BrowOutV", "type":"symmetric", "offse
            "A10": {"controlList": [{"name":"LipUpV", "type":"symmetric", "offset": 0.5, "multiplier": 0.5}]},
            "A26": {"controlList":[{"name":"JawV", "type":"single", "offset": 0, "multiplier": 1},
                                   {"name":"LipLoV", "type":"symmetric", "offset": 0.5, "multiplier": 0.45} ]},
+           "AU26": {"controlList":[{"name":"JawV", "type":"single", "offset": 0, "multiplier": 1},
+                                  {"name":"LipLoV", "type":"symmetric", "offset": 0.5, "multiplier": 0.45},
+                                  {"name":"LipUpV", "type":"symmetric", "offset": 0.4, "multiplier": 0.35}]},
            "A20": {"controlList": [{"name":"PuckerLipUp", "type":"symmetric", "offset": 0, "multiplier": -2},
                                    {"name":"PuckerLipLo", "type":"symmetric", "offset": 0, "multiplier": -2},
                                    {"name":"Platysmus", "type":"symmetric", "offset": 0, "multiplier": 1}]},
@@ -175,7 +187,13 @@ FACSmap = {"A1": {"controlList": [{"name":"BrowOutV", "type":"symmetric", "offse
                                   {"name":"BrowInV", "type":"symmetric", "offset": 0.5, "multiplier": -0.5}]},
            "A13": {"controlList": [{"name":"Platysmus", "type":"symmetric", "offset": 0, "multiplier": 1},
                                    {"name":"Smile", "type":"symmetric", "offset": 0, "multiplier": -1}]},
-           "A2": {"controlList": [{"name":"BrowOutV", "type":"symmetric", "offset": 0, "multiplier": 2}]}
+           "A2": {"controlList": [{"name":"BrowOutV", "type":"symmetric", "offset": 0, "multiplier": 2}]},
+           "leftEye" : {"controlList" :[{"name":"CloseLid", "type":"left", "offset": 1, "multiplier": -.7}]},
+           "rightEye" : {"controlList" :[{"name":"CloseLid", "type":"right", "offset": 1, "multiplier": -.7}]},
+           "leftBrow" : {"controlList" :[{"name":"BrowOutV", "type":"left", "offset": 0, "multiplier": 1},
+                                         {"name":"BrowInV", "type":"left", "offset": .5, "multiplier": .5}]},
+           "rightBrow" : {"controlList" :[{"name":"BrowOutV", "type":"right", "offset": 0, "multiplier": 1},
+                                         {"name":"BrowInV", "type":"right", "offset": .5, "multiplier": .5}]}
            }
            
 
@@ -204,51 +222,75 @@ def processJSONData(inputData):
       print "Wasn't in FACSmap:"
       print AU
   # Now, let's get the rotation data
-  # NOTE: The _Rotation elements are just there to support old data. Get rid of them soon.
-  if "xRotation" in inputData:
-    pitchPoints = inputData["xRotation"]
-  if "facePitch" in inputData:
-    pitchPoints = inputData["facePitch"]
-  if "yRotation" in inputData: 
-    rollPoints = inputData["yRotation"]
-  if "faceRoll" in inputData: 
-    rollPoints = inputData["faceRoll"]
-  if "zRotation" in inputData:
-    yawPoints = inputData["zRotation"]
-  if "faceYaw" in inputData: 
-    yawPoints = inputData["faceYaw"]
-  # And update the appropriate control!
-  times = []
-  if absoluteTime.get() == 0 and int(fps.get()) > 0 :
-    currentFrame = sfm.GetCurrentFrame()
-    offset = (currentFrame / int(fps.get())) * 10000
-  # Set up arrays to hold the time and value data
-  times = []
-  pitchValues = []
-  rollValues = []
-  yawValues = []
-  for element in pitchPoints:
-    times.append((element["time"] * 10) + offset)
-    pitchValues.append(element["value"] + headPitchOffset)
-  for element in rollPoints:
-    rollValues.append(element["value"])
-  for element in yawPoints:
-    yawValues.append(element["value"])
+  # Make sure there's at least one bit of rotation data
+  if "facePitch" in inputData or "xRotation" in inputData or \
+     "faceYaw" in inputData or "zRotation" in inputData or \
+     "faceRoll" in inputData or "yRotation" in inputData:
+
+    # NOTE: The _Rotation elements are just there to support old data. Get rid of them soon.
+    if "xRotation" in inputData:
+      pitchPoints = inputData["xRotation"]
+    if "facePitch" in inputData:
+      pitchPoints = inputData["facePitch"]
+    if "yRotation" in inputData: 
+      rollPoints = inputData["yRotation"]
+    if "faceRoll" in inputData: 
+      rollPoints = inputData["faceRoll"]
+    if "zRotation" in inputData:
+      yawPoints = inputData["zRotation"]
+    if "faceYaw" in inputData: 
+      yawPoints = inputData["faceYaw"]
+    # And update the appropriate control!
+    times = []
+    if absoluteTime.get() == 0 and int(fps.get()) > 0 :
+      currentFrame = sfm.GetCurrentFrame()
+      offset = (currentFrame / int(fps.get())) * 10000
+    # Set up arrays to hold the time and value data
+    times = []
+    pitchValues = []
+    rollValues = []
+    yawValues = []
+    for element in pitchPoints:
+      times.append((element["time"] * 10) + offset)
+      pitchValues.append(element["value"] + headPitchOffset)
+    for element in rollPoints:
+      #If we didn't get times from pitch...
+      if len(times) == 0:
+        times.append((element["time"] * 10) + offset)
+      rollValues.append(element["value"])
+    for element in yawPoints:
+      #If we didn't get times from pitch OR roll... 
+      #(We're guaranteed one of these lists has values at least)
+      if len(times) == 0:
+        times.append((element["time"] * 10) + offset)
+      yawValues.append(element["value"])
+      
+    #Now fill in any blank data with zeroes
+    if len(pitchValues) == 0:
+      for i in range(0, len(times)):
+        pitchValues.append(0)
+    if len(rollValues) == 0:
+      for i in range(0, len(times)):
+        rollValues.append(0)
+    if len(yawValues) == 0:
+      for i in range(0, len(times)):
+        yawValues.append(0)
     
-  print pitchValues
-  print rollValues
-  print yawValues
-  
-  quaternionValues = []
-  #Now make some quaternions out of those values
-  for i in range(0, len(pitchValues)):
-    qAngle = mathlib.QAngle(rollValues[i], yawValues[i], pitchValues[i])
-    # Can we go from that straight to quaternion?
-    radianEulerAngle = mathlib.RadianEuler(qAngle)
-    quaternion = mathlib.Quaternion(radianEulerAngle)
-    quaternionValues.append(quaternion)
+      
+    print pitchValues
+    print rollValues
+    print yawValues
     
-  replaceRotationAnimation("bip_head", times, quaternionValues)
+    quaternionValues = []
+    #Now make some quaternions out of those values
+    for i in range(0, len(pitchValues)):
+      qAngle = mathlib.QAngle(rollValues[i], yawValues[i], pitchValues[i])
+      # Can we go from that straight to quaternion?
+      radianEulerAngle = mathlib.RadianEuler(qAngle)
+      quaternion = mathlib.Quaternion(radianEulerAngle)
+      quaternionValues.append(quaternion)
+      
+    replaceRotationAnimation("bip_head", times, quaternionValues)
   
 sys.argv = ' '
 # Create the window and give it a title
