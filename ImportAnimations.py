@@ -1,5 +1,7 @@
 #  ImportAnimations.py
 #
+#   2012 - Alan Chatham - alan.chatham@gmail.com
+#
 #   A tool for importing well-formatted JSON objects listing time/value points
 #    and turning those points into animation curves in Source Filmmaker.
 #
@@ -34,8 +36,6 @@
 #    choose 'left', 'right', or 'symmetric'), then an offset and a multiplier
 #    in order to adjust the incoming data to look better. 
 #
-#
-#   Copyright 2012 - Alan Chatham
 #   This code is released to the public under the GNU Public License, version 3
 #   The full licence can be read in the included gpl-3.0.txt file, or at
 #   http://www.gnu.org/licenses/gpl-3.0.txt
