@@ -50,27 +50,31 @@ from vs import mathlib
 from win32gui import MessageBox
 from win32con import MB_ICONINFORMATION, MB_ICONEXCLAMATION, MB_ICONERROR
 
-FACSmap = {"A1": {"controlList": [{"name":"BrowOutV", "type":"symmetric", "offset": 0, "multiplier": 1}]},
-           "A10": {"controlList": [{"name":"LipUpV", "type":"symmetric", "offset": 0.5, "multiplier": 0.5}]},
-           "A26": {"controlList":[{"name":"JawV", "type":"single", "offset": 0, "multiplier": 1},
-                                  {"name":"LipLoV", "type":"symmetric", "offset": 0.5, "multiplier": 0.45} ]},
-           "AU26": {"controlList":[{"name":"JawV", "type":"single", "offset": 0, "multiplier": 1},
+FACSmap = {"A1": [{"name":"BrowOutV", "type":"symmetric", "offset": 0, "multiplier": 1}],
+           "A10": [{"name":"LipUpV", "type":"symmetric", "offset": 0.5, "multiplier": 0.5}],
+           "A26": [{"name":"JawV", "type":"single", "offset": 0.5, "multiplier": .5},
+                                  {"name":"LipLoV", "type":"symmetric", "offset": 0.5, "multiplier": 0.45} ],
+           "AU26": [{"name":"JawV", "type":"single", "offset": 0, "multiplier": 1},
                                   {"name":"LipLoV", "type":"symmetric", "offset": 0.5, "multiplier": 0.45},
-                                  {"name":"LipUpV", "type":"symmetric", "offset": 0.4, "multiplier": 0.35}]},
-           "A20": {"controlList": [{"name":"PuckerLipUp", "type":"symmetric", "offset": 0, "multiplier": -2},
+                                  {"name":"LipUpV", "type":"symmetric", "offset": 0.4, "multiplier": 0.35}],
+           "A20": [{"name":"PuckerLipUp", "type":"symmetric", "offset": 0, "multiplier": -2},
                                    {"name":"PuckerLipLo", "type":"symmetric", "offset": 0, "multiplier": -2},
-                                   {"name":"Platysmus", "type":"symmetric", "offset": 0, "multiplier": 1}]},
-           "A4": {"controlList": [{"name":"Frown", "type":"symmetric", "offset": 0, "multiplier": 1},
-                                  {"name":"BrowInV", "type":"symmetric", "offset": 0.5, "multiplier": -0.5}]},
-           "A13": {"controlList": [{"name":"Platysmus", "type":"symmetric", "offset": 0, "multiplier": 1},
-                                   {"name":"Smile", "type":"symmetric", "offset": 0, "multiplier": -1}]},
-           "A2": {"controlList": [{"name":"BrowOutV", "type":"symmetric", "offset": 0, "multiplier": 2}]},
-           "leftEye" : {"controlList" :[{"name":"CloseLid", "type":"left", "offset": 1, "multiplier": -.7}]},
-           "rightEye" : {"controlList" :[{"name":"CloseLid", "type":"right", "offset": 1, "multiplier": -.7}]},
-           "leftBrow" : {"controlList" :[{"name":"BrowOutV", "type":"left", "offset": 0, "multiplier": 1},
-                                         {"name":"BrowInV", "type":"left", "offset": .5, "multiplier": .5}]},
-           "rightBrow" : {"controlList" :[{"name":"BrowOutV", "type":"right", "offset": 0, "multiplier": 1},
-                                         {"name":"BrowInV", "type":"right", "offset": .5, "multiplier": .5}]}
+                                   {"name":"Platysmus", "type":"symmetric", "offset": 0, "multiplier": 1}],
+           "A4": [{"name":"Frown", "type":"symmetric", "offset": 0, "multiplier": 1},
+                                  {"name":"BrowInV", "type":"symmetric", "offset": 0.5, "multiplier": -0.5}],
+           "A13": [{"name":"Platysmus", "type":"symmetric", "offset": 0, "multiplier": 1},
+                                   {"name":"Smile", "type":"symmetric", "offset": 0, "multiplier": -1}],
+           "A2": [{"name":"BrowOutV", "type":"symmetric", "offset": 0, "multiplier": 2}],
+           "leftEye" : [{"name":"CloseLid", "type":"left", "offset": 1, "multiplier": -.7}],
+           "rightEye" : [{"name":"CloseLid", "type":"right", "offset": 1, "multiplier": -.7}],
+           "leftBrowLevel" : [{"name":"BrowOutV", "type":"left", "offset": 0, "multiplier": 1},
+                                         {"name":"BrowInV", "type":"left", "offset": .5, "multiplier": .5}],
+           "rightBrowLevel" : [{"name":"BrowOutV", "type":"right", "offset": 0, "multiplier": 1},
+                                         {"name":"BrowInV", "type":"right", "offset": .5, "multiplier": .5}],
+           "innerLipWidth": [{"name":"PuckerLipUp", "type":"symmetric", "offset": 0, "multiplier": -2},
+                                   {"name":"PuckerLipLo", "type":"symmetric", "offset": 0, "multiplier": -2},
+                                   {"name":"Platysmus", "type":"symmetric", "offset": 0, "multiplier": 1}],
+           "chinHorizontalDisplacement": [{"name":"JawH", "type":"single", "offset": 0.5, "multiplier": .5}]
            }
 
 #TODO: Sanity checking on inputs
@@ -252,7 +256,7 @@ def processJSONData(inputData):
         auValues.append((element["value"]))
       # Now push those arrays to the animation control
       # control[0] is the control name,
-      for control in FACSmap[AU]["controlList"]:
+      for control in FACSmap[AU]:
         replaceControlAnimation(control["name"], auTimes, auValues, control["type"],
                                 control["offset"], control["multiplier"])
         
